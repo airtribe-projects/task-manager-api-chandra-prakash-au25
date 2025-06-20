@@ -3,12 +3,65 @@ const mongoose = require('mongoose');
 class TaskController {
     async getAllTasks(req, res) {
         try {
-            const tasks = await Task.find({}).sort({ createdAt: -1 });
+            const { completed, sortBy } = req.query;
+            let query = {};
+            
+            if (completed) {
+                query.completed = completed === 'true';
+            }
+            
+            const sortOption = sortBy === 'createdAt' ? { createdAt: -1 } : {};
+            const tasks = await Task.find(query).sort(sortOption);
             res.json(tasks);
         } catch (error) {
-            console.error('Error fetching tasks:', error);
-            res.status(500).json({ 
-                error: 'Failed to fetch tasks',
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    async getTasksByPriority(req, res) {
+        try {
+            const { level } = req.params;
+            if (!['low', 'medium', 'high'].includes(level)) {
+                return res.status(400).json({ error: 'Invalid priority level' });
+            }
+            const tasks = await Task.find({ priority: level });
+            res.json(tasks);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    async createTask(req, res) {
+        try {
+            const { title, description, completed, priority } = req.body;
+            
+            // Validation
+            if (!title || !description) {
+                return res.status(400).json({ 
+                    error: 'Validation failed',
+                    details: 'Title and description are required'
+                });
+            }
+            
+            if (typeof completed !== 'boolean' && completed !== undefined) {
+                return res.status(400).json({
+                    error: 'Validation failed',
+                    details: 'Completed must be a boolean'
+                });
+            }
+            
+            const task = new Task({
+                title,
+                description,
+                completed: completed || false,
+                priority: priority || 'medium'
+            });
+            
+            await task.save();
+            res.status(201).json(task);
+        } catch (error) {
+            res.status(400).json({ 
+                error: 'Error creating task',
                 details: error.message 
             });
         }
@@ -34,28 +87,6 @@ class TaskController {
         }
     }
 
-    async createTask(req, res) {
-        try {
-            if (!req.body.title) {
-                return res.status(400).json({ error: 'Title is required' });
-            }
-            
-            const task = new Task({
-                title: req.body.title,
-                description: req.body.description || '',
-                completed: req.body.completed || false
-            });
-            
-            const savedTask = await task.save();
-            res.status(201).json(savedTask);
-        } catch (error) {
-            console.error('Error creating task:', error);
-            res.status(400).json({ 
-                error: 'Failed to create task',
-                details: error.message 
-            });
-        }
-    }
 
     async updateTask(req, res) {
         try {

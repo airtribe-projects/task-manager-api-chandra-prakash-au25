@@ -4,8 +4,9 @@ A RESTful API for managing tasks built with Node.js, Express, and MongoDB.
 
 ## Features
 - Create, read, update, and delete tasks
-- Task status tracking (completed/incomplete)
-- Sorting and filtering capabilities
+- Filter tasks by completion status and priority level
+- Sort tasks by creation date
+- Input validation and error handling
 
 ## Installation
 1. Clone the repository
