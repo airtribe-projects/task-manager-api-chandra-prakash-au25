@@ -1,10 +1,11 @@
 const Task = require('../models/task');
 const mongoose = require('mongoose');
+
 class TaskController {
     async getAllTasks(req, res) {
         try {
             const { completed, sortBy } = req.query;
-            let query = {};
+            const query = { user: req.userId };
             
             if (completed) {
                 query.completed = completed === 'true';
@@ -24,7 +25,11 @@ class TaskController {
             if (!['low', 'medium', 'high'].includes(level)) {
                 return res.status(400).json({ error: 'Invalid priority level' });
             }
-            const tasks = await Task.find({ priority: level });
+            
+            const tasks = await Task.find({ 
+                priority: level,
+                user: req.userId 
+            });
             res.json(tasks);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -33,37 +38,14 @@ class TaskController {
 
     async createTask(req, res) {
         try {
-            const { title, description, completed, priority } = req.body;
-            
-            // Validation
-            if (!title || !description) {
-                return res.status(400).json({ 
-                    error: 'Validation failed',
-                    details: 'Title and description are required'
-                });
-            }
-            
-            if (typeof completed !== 'boolean' && completed !== undefined) {
-                return res.status(400).json({
-                    error: 'Validation failed',
-                    details: 'Completed must be a boolean'
-                });
-            }
-            
             const task = new Task({
-                title,
-                description,
-                completed: completed || false,
-                priority: priority || 'medium'
+                ...req.body,
+                user: req.userId
             });
-            
             await task.save();
             res.status(201).json(task);
         } catch (error) {
-            res.status(400).json({ 
-                error: 'Error creating task',
-                details: error.message 
-            });
+            res.status(400).json({ error: error.message });
         }
     }
 
@@ -73,20 +55,22 @@ class TaskController {
                 return res.status(400).json({ error: 'Invalid task ID' });
             }
             
-            const task = await Task.findById(req.params.id);
+            const task = await Task.findOne({ 
+                _id: req.params.id,
+                user: req.userId 
+            });
+            
             if (!task) {
                 return res.status(404).json({ error: 'Task not found' });
             }
             res.json(task);
         } catch (error) {
-            console.error('Error fetching task:', error);
             res.status(500).json({ 
                 error: 'Failed to fetch task',
                 details: error.message 
             });
         }
     }
-
 
     async updateTask(req, res) {
         try {
@@ -99,8 +83,11 @@ class TaskController {
             if (req.body.description) updates.description = req.body.description;
             if (typeof req.body.completed === 'boolean') updates.completed = req.body.completed;
             
-            const task = await Task.findByIdAndUpdate(
-                req.params.id,
+            const task = await Task.findOneAndUpdate(
+                { 
+                    _id: req.params.id,
+                    user: req.userId 
+                },
                 updates,
                 { new: true, runValidators: true }
             );
@@ -110,7 +97,6 @@ class TaskController {
             }
             res.json(task);
         } catch (error) {
-            console.error('Error updating task:', error);
             res.status(500).json({ 
                 error: 'Failed to update task',
                 details: error.message 
@@ -124,13 +110,16 @@ class TaskController {
                 return res.status(400).json({ error: 'Invalid task ID' });
             }
             
-            const task = await Task.findByIdAndDelete(req.params.id);
+            const task = await Task.findOneAndDelete({ 
+                _id: req.params.id,
+                user: req.userId 
+            });
+            
             if (!task) {
                 return res.status(404).json({ error: 'Task not found' });
             }
             res.json({ message: 'Task deleted successfully' });
         } catch (error) {
-            console.error('Error deleting task:', error);
             res.status(500).json({ 
                 error: 'Failed to delete task',
                 details: error.message 

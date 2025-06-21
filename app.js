@@ -3,13 +3,15 @@ const morgan = require('morgan');
 const cors = require('cors');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
+const authRoutes = require('./src/routes/authRoutes');
 require('dotenv').config();
-
+const cookieParser = require('cookie-parser');
 const connectDB = require('./src/config/database');
 const taskRoutes = require('./src/routes/taskRoutes');
 
 const app = express();
 const port = process.env.PORT || 3000;
+app.use(cookieParser());
 
 // Connect to MongoDB
 connectDB();
@@ -35,6 +37,7 @@ app.use(session({
 
 // Routes
 app.use('/v1/tasks', taskRoutes);
+app.use('/v1/auth', authRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
