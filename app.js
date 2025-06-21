@@ -4,14 +4,13 @@ const cors = require('cors');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const authRoutes = require('./src/routes/authRoutes');
-require('dotenv').config();
 const cookieParser = require('cookie-parser');
 const connectDB = require('./src/config/database');
 const taskRoutes = require('./src/routes/taskRoutes');
-
 const app = express();
 const port = process.env.PORT || 3000;
 app.use(cookieParser());
+require('dotenv').config();
 
 // Connect to MongoDB
 connectDB();
